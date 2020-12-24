@@ -249,6 +249,7 @@ PARSER_SRCS =				\
 	parsers/jscript.c		\
 	parsers/json.c			\
 	parsers/julia.c			\
+	parsers/kotlin.c			\
 	parsers/ldscript.c		\
 	parsers/lisp.c			\
 	parsers/lua.c			\
