@@ -8,22 +8,23 @@
 #include "debug.h"
 
 static kindDefinition KotlinKindTable [] = {
+    { true, 'p', "package", "packages", },
+    { true, 'i', "interface", "interfaces", },
     { true, 'c', "class", "classes", },
     { true, 'o', "object", "objects", },
-    { true, 'i', "interface", "interfaces", },
-    { true, 'T', "typealias", "typealiases", },
     { true, 'm', "method", "methods", },
+    { true, 'T', "typealias", "typealiases", },
     { true, 'C', "constant", "constants", },
     { true, 'v', "variable", "variables", },
-    { true, 'p', "package", "packages", },
 };
 
 typedef enum  {
+    KIND_PACKAGE,
+    KIND_INTERFACE,
     KIND_CLASS,
     KIND_OBJECT,
-    KIND_INTERFACE,
-    KIND_TYPEALIAS,
     KIND_METHOD,
+    KIND_TYPEALIAS,
     KIND_CONSTANT,
     KIND_VARIABLE
 } KotlinKind;
@@ -43,14 +44,22 @@ static void initializeKotlinParser (const langType language)
 {
 }
 
+static int CurrentNamespace;
+
 static void createKotlinTag (const vString * name, unsigned long kind)
 {
+    int namespace = CORK_NIL;
     tagEntryInfo e;
     Assert(vStringLength(name) > 0);
     initTagEntry (&e, vStringValue(name), kind);
     e.lineNumber = getInputLineNumber ();
     e.filePosition = getInputFilePosition ();
-    makeTagEntry (&e);
+    namespace = makeTagEntry (&e);
+    if (namespace >= 0 && kind <= KIND_METHOD)
+    {
+        CurrentNamespace = namespace;
+        fprintf(stderr, "DBG: current namespace:%d\n", CurrentNamespace);
+    }
 }
 
 static void skipWhitespace (void)
@@ -358,14 +367,14 @@ static void packageProcessor (KotlinKind kind) {
 }
 
 static KotlinKindInfo kotlinKindInfoTable [] = {
+    { "package", 7, packageProcessor },
+    { "interface", 9, simpleProcessor },
     { "class", 5, simpleProcessor },
     { "object", 6, simpleProcessor },
-    { "interface", 9, simpleProcessor },
-    { "typealias", 9, simpleProcessor },
     { "fun", 3, functionProcessor },
+    { "typealias", 9, simpleProcessor },
     { "val", 3, propertyProcessor },
     { "var", 3, propertyProcessor },
-    { "package", 7, packageProcessor },
 };
 
 static void findKotlinTags (void)
@@ -398,6 +407,7 @@ extern parserDefinition* KotlinParser (void)
 	def->kindCount     = ARRAY_SIZE(KotlinKindTable);
 	def->initialize    = initializeKotlinParser;
     def->parser        = findKotlinTags;
-
+    def->useCork       = CORK_QUEUE;
+    def->requestAutomaticFQTag = 1;
 	return def;
 }
